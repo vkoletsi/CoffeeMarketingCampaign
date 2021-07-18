@@ -1,0 +1,66 @@
+---------------------------- Segment per Order Value ---------
+-- Chart 1 Query
+SELECT CUST_RANGE, COUNT(*) cnt FROM (
+select CASE WHEN ROUND(AMOUNT) BETWEEN 0.0 AND 5 THEN 'UP TO 5 Euro'
+            WHEN ROUND(AMOUNT) BETWEEN 5.01 AND 10 THEN 'FROM 5.01 UP TO 10 Euro'
+            WHEN ROUND(AMOUNT) BETWEEN 10.01 AND 20 THEN 'FROM 10.01 UP TO 20 Euro' 
+            WHEN ROUND(AMOUNT) BETWEEN 20.01 AND 50 THEN 'FROM 20.01 UP TO 50 Euro' 
+            WHEN ROUND(AMOUNT) BETWEEN 50.01 AND 100 THEN 'FROM 50.01 UP TO 100 Euro' 
+            WHEN ROUND(AMOUNT) BETWEEN 50.01 AND 200 THEN 'FROM 50.01 UP TO 200 Euro'
+            WHEN ROUND(AMOUNT) BETWEEN 200.01 AND 500 THEN 'FROM 200.01 UP TO 500 Euro' END AS CUST_RANGE
+            ,  user_id 
+            FROM (
+select sum(basket) AMOUNT, user_id from `bi-2019-test.ad_hoc.orders_jan2021` where cuisine_parent = 'Breakfast' 
+group by user_id
+)
+) GROUP BY CUST_RANGE order by cnt desc;
+
+
+---------------------------- Segment per Frequency ---------
+-- Chart 2 Query
+SELECT Num_Of_Days, COUNT(distinct user_id) user_count FROM (
+select CASE WHEN Num_Of_Days BETWEEN 0 AND 5 THEN   'UP TO 5 DAYS PER MONTH'
+            WHEN Num_Of_Days BETWEEN 6 AND 10 THEN  'FROM 6 TO 10 DAYS PER MONTH'
+            WHEN Num_Of_Days BETWEEN 11 AND 15 THEN 'FROM 11 TO 15 DAYS PER MONTH' 
+            WHEN Num_Of_Days BETWEEN 16 AND 20 THEN 'FROM 16 TO 20 DAYS PER MONTH' 
+            WHEN Num_Of_Days BETWEEN 21 AND 25 THEN 'FROM 21 TO 25 DAYS PER MONTH' 
+            WHEN Num_Of_Days BETWEEN 26 AND 30 THEN 'FROM 26 TO 30 DAYS PER MONTH' END AS Num_Of_Days
+            ,  user_id 
+            FROM (
+SELECT COUNT( DISTINCT EXTRACT(DAY FROM submit_dt)) AS Num_Of_Days, user_id
+FROM `bi-2019-test.ad_hoc.orders_jan2021` WHERE cuisine_parent = 'Breakfast' 
+group by user_id
+)
+) GROUP BY Num_Of_Days order by user_count desc;
+
+
+-------------------------- Final Query that contains all target customer based on the arguments in the presentation
+
+SELECT user_id FROM (
+select CASE WHEN ROUND(AMOUNT) BETWEEN 0.0 AND 5 THEN 'UP TO 5 Euro'
+            WHEN ROUND(AMOUNT) BETWEEN 5.01 AND 10 THEN 'FROM 5.01 UP TO 10 Euro'
+            WHEN ROUND(AMOUNT) BETWEEN 10.01 AND 20 THEN 'FROM 10.01 UP TO 20 Euro' 
+            WHEN ROUND(AMOUNT) BETWEEN 20.01 AND 50 THEN 'FROM 20.01 UP TO 50 Euro' 
+            WHEN ROUND(AMOUNT) BETWEEN 50.01 AND 100 THEN 'FROM 50.01 UP TO 100 Euro' 
+            WHEN ROUND(AMOUNT) BETWEEN 50.01 AND 200 THEN 'FROM 50.01 UP TO 200 Euro'
+            WHEN ROUND(AMOUNT) BETWEEN 200.01 AND 500 THEN 'FROM 200.01 UP TO 500 Euro' END AS CUST_RANGE, user_id 
+            FROM (
+select sum(basket) AMOUNT, user_id from `bi-2019-test.ad_hoc.orders_jan2021` where cuisine_parent = 'Breakfast' 
+group by user_id
+)
+) where CUST_RANGE in ('FROM 5.01 UP TO 10 Euro','FROM 10.01 UP TO 20 Euro','FROM 20.01 UP TO 50 Euro')
+and user_id in (
+SELECT user_id
+FROM (
+select CASE WHEN Num_Of_Days BETWEEN 0 AND 5 THEN   'UP TO 5 DAYS PER MONTH'
+            WHEN Num_Of_Days BETWEEN 6 AND 10 THEN  'FROM 6 TO 10 DAYS PER MONTH'
+            WHEN Num_Of_Days BETWEEN 11 AND 15 THEN 'FROM 11 TO 15 DAYS PER MONTH' 
+            WHEN Num_Of_Days BETWEEN 16 AND 20 THEN 'FROM 16 TO 20 DAYS PER MONTH' 
+            WHEN Num_Of_Days BETWEEN 21 AND 25 THEN 'FROM 21 TO 25 DAYS PER MONTH' 
+            WHEN Num_Of_Days BETWEEN 26 AND 30 THEN 'FROM 26 TO 30 DAYS PER MONTH' END AS Num_Of_Days, user_id 
+            FROM (
+SELECT COUNT( DISTINCT EXTRACT(DAY FROM submit_dt)) AS Num_Of_Days, user_id
+FROM `bi-2019-test.ad_hoc.orders_jan2021` WHERE cuisine_parent = 'Breakfast' 
+group by user_id
+)
+) where Num_Of_Days in ('FROM 6 TO 10 DAYS PER MONTH','FROM 11 TO 15 DAYS PER MONTH', 'FROM 16 TO 20 DAYS PER MONTH' )  );

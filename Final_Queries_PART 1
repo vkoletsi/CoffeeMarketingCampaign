@@ -1,0 +1,48 @@
+-- Part I – SQL/Data Handling 
+-- For every city that exceeds the 500 orders we would like to know:
+
+-- 1st 	query:	How many orders are placed in the "Breakfast" cuisine (Breakfast_Orders)? 
+select city, count(*) order_count from `bi-2019-test.ad_hoc.orders_jan2021`
+where cuisine_parent = 'Breakfast' 
+and city in 
+    (
+    select city from (
+    SELECT city, count(*) cnt FROM `bi-2019-test.ad_hoc.orders_jan2021`
+    group by city
+    ) where cnt > 500
+    )
+group by city 
+order by order_count desc limit 10;
+
+-- 2nd query:	How many users ordered from the "Breakfast" cuisine (Breakfast_Users)?
+select city, count(distinct user_id) user_count from `bi-2019-test.ad_hoc.orders_jan2021`
+where cuisine_parent = 'Breakfast' 
+and city in 
+    (
+    select city from (
+    SELECT city, count(*) cnt FROM `bi-2019-test.ad_hoc.orders_jan2021`
+    group by city
+    ) where cnt > 500
+    )
+group by city 
+order by user_count desc limit 10;
+
+
+--- 3rd
+select city, round(avg(basket)) avg_basket_amount from `bi-2019-test.ad_hoc.orders_jan2021`
+where city in 
+    (
+    select city from (
+    SELECT city, count(*) cnt FROM `bi-2019-test.ad_hoc.orders_jan2021`
+    group by city
+    ) where cnt > 500
+    )
+    /* the users defined from the previous query*/
+    and user_id in (select distinct user_id from `bi-2019-test.ad_hoc.orders_jan2021` 
+    where cuisine_parent = 'Breakfast' 
+        and city in ( select city from ( SELECT city, count(*) cnt FROM `bi-2019-test.ad_hoc.orders_jan2021`
+    group by city) where cnt > 500) -- 
+    )
+group by city 
+order by avg_basket_amount desc limit 10;
+
